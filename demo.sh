@@ -139,6 +139,29 @@ cmd_up() {
     '{alice:$alice, bob:$bob, charlie:$charlie}' >"$TOKENS_FILE"
   log "Tokens written to $TOKENS_FILE"
 
+     # ─── 4️⃣a Generate Trino catalog with Charlie’s token ───────────────────
+  mkdir -p trino/catalog
+  cat > trino/catalog/prod.properties <<EOF
+connector.name=iceberg
+
+iceberg.catalog.type=rest
+iceberg.rest-catalog.uri=http://polaris:8181/api/catalog
+iceberg.rest-catalog.warehouse=prod
+
+iceberg.rest-catalog.security=OAUTH2
+iceberg.rest-catalog.oauth2.token=$CHARLIE_TOKEN
+
+fs.native-s3.enabled=true
+s3.endpoint=${TF_VAR_endpoint}
+s3.path-style-access=true
+s3.region=${TF_VAR_s3_region:-default}
+
+iceberg.rest-catalog.vended-credentials-enabled=true
+iceberg.rest-catalog.nested-namespace-enabled=false
+iceberg.rest-catalog.case-insensitive-name-matching=false
+EOF
+  log "✔ trino/catalog/prod.properties rendered with Principal token for trino"
+  podman restart trino
   display_step "5️⃣ Jupyter Ready" "Copy-and-paste this URL into your browser"
   podman compose logs --tail 20 jupyter 2> /tmp/logs
   TOKEN=$(grep -Eo 'token=[0-9a-f]+' /tmp/logs | head -1 | cut -d= -f2)
@@ -157,11 +180,11 @@ cmd_destroy() {
 
   display_step "🛑 Tear Down: Polaris Terraform" \
                "Destroy Polaris catalog, roles & principals"
-  terraform_init  "$POLARIS_TF_DIR" && terraform_destroy="$POLARIS_TF_DIR" || true
+  terraform_init  "$POLARIS_TF_DIR" && terraform_destroy "$POLARIS_TF_DIR" || true
 
   display_step "🛑 Tear Down: Ceph Terraform" \
                "Destroy Ceph S3 bucket & IAM resources"
-  terraform_init  "$CEPH_TF_DIR"    && terraform_destroy="$CEPH_TF_DIR"    || true
+  terraform_init  "$CEPH_TF_DIR"    && terraform_destroy "$CEPH_TF_DIR"    || true
 
   [ -f "$COMPOSE_ENV_FILE" ] && rm -f "$COMPOSE_ENV_FILE"
   log "Cleanup complete"

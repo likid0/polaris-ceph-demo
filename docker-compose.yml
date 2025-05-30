@@ -30,26 +30,25 @@ services:
       quarkus.otel.sdk.disabled: "true"
     container_name: polaris
 
-#  trino:
-#    image: trinodb/trino:latest
-#    container_name: trino
-#    depends_on:
-#      - polaris
-#    ports:
-#      - "8080:8080"
-#    volumes:
-#      - ./trino/catalog:/etc/trino/catalog
-#    environment:
-#      - JAVA_TOOL_OPTIONS=-Duser.timezone=UTC
-#
-## Spark container is optional, not required for the notebook demo
+  trino:
+    image: trinodb/trino:latest
+    container_name: trino
+    depends_on:
+      - polaris
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./trino/catalog:/etc/trino/catalog
+    environment:
+      - JAVA_TOOL_OPTIONS=-Duser.timezone=UTC
+
 
   spark:
     image: bitnami/spark:3.5
     depends_on:
       - polaris
     ports: 
-      - 8080:8080  # Master Web UI
+#      - 8080:8080  # Master Web UI
       - 7077:7077  # Master Port
     environment:
       SPARK_SUBMIT_OPTIONS: >
@@ -58,6 +57,7 @@ services:
     container_name: spark
     volumes:
       - ./spark/conf/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+
   jupyter:
     image: jupyter/pyspark-notebook:spark-3.5.0
     container_name: jupyter
