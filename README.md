@@ -5,7 +5,9 @@ A proof-of-concept showing how to use Terraform to fully automate a Polaris data
 - Provisioning Ceph RGW S3 buckets, IAM roles, and policies
 - Deploying the Polaris control plane and Jupyter Notebook via Docker Compose
 - Configuring Polaris resources (principals, roles, grants, tables)
-- Demonstrating credential vending and fine-grained table RBAC in an interactive notebook
+- Demonstrating credential vending and fine-grained table RBAC:
+** With Spark in a Jupiter Notebook
+** With Trino using the Trino CLI to run SQL querys
 
 ---
 
@@ -35,6 +37,10 @@ A proof-of-concept showing how to use Terraform to fully automate a Polaris data
 ├── spark
 │   └── conf
 │       └── spark-defaults.conf
+├── trino
+│   └── catalog
+│       └── prod.properties    # Generated Trino Iceberg REST catalog config
+└── trino-cli.sh               # Wrapper to launch Trino CLI with dynamic token
 ```
 
 ---
@@ -105,15 +111,27 @@ From the repository root, run:
 # Bring up all resources
 ./demo.sh up
 
+# CLI entrypoint for Trino(interactive):
+./trino-cli.sh    
+
 # When finished, destroy everything
 ./demo.sh destroy
 ```
 
-This will:
-1. Provision RGW S3 bucket, IAM roles & policies via Terraform
-2. Deploy Polaris control plane & Jupyter Notebook via Docker Compose
-3. Configure Polaris catalog principals, roles, grants, and tables
-4. Launch an interactive notebook demonstrating credential vending & RBAC
+* demo.sh will:
+
+** Provision RGW S3 bucket, IAM roles & policies via Terraform
+** Deploy Polaris, Jupyter, and Trino via Docker Compose
+** Configure Polaris catalog principals, roles, grants, and tables
+** Generate notebooks/tokens.json and trino/catalog/prod.properties
+
+* trino-cli.sh will:
+
+** Read the chosen principal’s token from notebooks/tokens.json
+** Export it into POLARIS_TOKEN (injected into prod.properties)
+** Launch the Trino CLI (trino:prod_ns>) ready for SQL
+
+
 
 Once complete, you will get the jupyter URL to login with your browser and run `notebooks/demo.ipynb`.
 
